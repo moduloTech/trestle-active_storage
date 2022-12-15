@@ -9,35 +9,51 @@ module Trestle
       end
 
       private
-        def define_attachment_accessors
-          self.instance = admin.find_instance(params)
 
-          admin.active_storage_fields.each do |field|
-            attachment = instance.send(field)
+      def define_attachment_accessors
+        self.instance = admin.find_instance(params)
 
-            if attachment.respond_to?(:each)
-              attachment.each do |att|
-                instance.class.send(:attr_accessor, "delete_#{field}_#{att.blob_id}")
-              end
-            else
-              instance.class.send(:attr_accessor, "delete_#{field}")
+        admin.active_storage_fields.each do |field|
+          instance, field = instance_field(field)
+          attachment = instance.send(field)
+
+          if attachment.respond_to?(:each)
+            attachment.each do |att|
+              instance.class.send(:attr_accessor, "delete_#{field}_#{att.blob_id}")
             end
+          else
+            instance.class.send(:attr_accessor, "delete_#{field}")
           end
         end
+      end
 
-        def purge_attachments
-          admin.active_storage_fields.each do |field|
-            attachment = instance.send(field)
+      def instance_field(field)
+        case field
+        when String, Symbol
+          [instance, field]
+        when Array
+          inst, field = field
+          [instance.send(inst), field]
+        when Hash
+          inst, field = field.first
+          [instance.send(inst), field]
+        end
+      end
 
-            if attachment.respond_to?(:each)
-              attachment.each do |att|
-                att.purge if instance.try("delete_#{field}_#{att.blob_id}") == '1'
-              end
-            else
-              instance.send(field).purge if instance.try("delete_#{field}") == '1'
+      def purge_attachments
+        admin.active_storage_fields.each do |field|
+          instance, field = instance_field(field)
+          attachment = instance.send(field)
+
+          if attachment.respond_to?(:each)
+            attachment.each do |att|
+              att.purge if instance.try("delete_#{field}_#{att.blob_id}") == '1'
             end
+          else
+            instance.send(field).purge if instance.try("delete_#{field}") == '1'
           end
         end
+      end
     end
   end
 end
