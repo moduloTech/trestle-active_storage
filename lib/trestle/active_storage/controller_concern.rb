@@ -17,15 +17,15 @@ module Trestle
           instance, field = instance_field(field)
           attachment = instance.send(field)
 
-          if attachment.respond_to?(:each)
-            attachment.each do |att|
-              instance.class.send(:attr_accessor, "delete_#{field}_#{att.blob_id}")
+            if attachment.respond_to?(:each)
+              attachment.each do |att|
+                instance.class.send(:attr_accessor, "delete_#{field}_#{att.blob_id.to_s.gsub('-', '')}")
+              end
+            else
+              instance.class.send(:attr_accessor, "delete_#{field}")
             end
-          else
-            instance.class.send(:attr_accessor, "delete_#{field}")
           end
         end
-      end
 
       def instance_field(field)
         case field
@@ -47,7 +47,7 @@ module Trestle
 
           if attachment.respond_to?(:each)
             attachment.each do |att|
-              att.purge if instance.try("delete_#{field}_#{att.blob_id}") == '1'
+              att.purge if instance.try("delete_#{field}_#{att.blob_id.to_s.gsub('-', '')}") == '1'
             end
           else
             instance.send(field).purge if instance.try("delete_#{field}") == '1'
