@@ -11,7 +11,7 @@ module Trestle
       private
 
       def define_attachment_accessors
-        self.instance = admin.find_instance(params)
+        load_instance
 
         admin.active_storage_fields.each do |field|
           instance, field = instance_field(field)
